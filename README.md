@@ -2,7 +2,7 @@
 
 **Symmetry-Preserving $O(3)$ Geometric Probe Gating and Multi-Scale Enriched Radial Filters for Real-Space Electron Density Prediction**
 
-GeoProbe-DeepDFT resolves the directional blindness and single-basis radial bottleneck of one-way PaiNN message passing (`PainnDensityModel` from Jørgensen & Bhowmik, *npj Comput. Mater.* **2022**, *8*, 183) while preserving exact $E(3) \times S_N \times \text{PBC}$ symmetry and $C^2$ differentiability wrt probe coordinates $\mathbf{r}$.
+GeoProbe-DeepDFT resolves the first-hop directional blindness and single-basis radial bottleneck of one-way PaiNN message passing (`PainnDensityModel` from Jørgensen & Bhowmik, *npj Comput. Mater.* **2022**, *8*, 183) while preserving exact $E(3) \times S_N \times \text{PBC}$ symmetry and globally $C^1$-smooth ($C^\infty$ on $(0, r_{\mathrm{cut}})$) differentiability with respect to probe coordinates $\mathbf{r}$.
 
 ## Key Architectural Innovations
 
@@ -13,19 +13,36 @@ GeoProbe-DeepDFT resolves the directional blindness and single-basis radial bott
 2. **Multi-Scale `EnrichedRadialFilter` ($30 \to 58 \to 64 \to 3F$)**:
    Augments the canonical 30 spherical-sinc radial functions with 16 trainable-frequency Bessel waves ($\sin(\omega_k d)/(d + 10^{-5})$), 4 short-range inverse-distance terms ($(1 + d)^{-k},\, k=1\dots 4$), and 8 learnable Gaussian radial envelopes.
 3. **Chunked Edge Streaming (65,536 edges/chunk)**:
-   Eliminates transient $(E, 3, F)$ allocation spikes during inference, cutting peak VRAM by **43.1%** relative to canonical `h=128` (`1,596.5 MB` vs `2,807.1 MB` at 8,192 probes/chunk on RTX 5080).
+   Bounds transient $(E_{\text{chunk}}, 3, F)$ allocations during inference for any PaiNN model (`1,601.1 MB` peak VRAM at 8,192 probes/chunk on RTX 5080 vs `1,237.3 MB` for chunked canonical `h=128`, `2,806.4 MB` for unchunked official DeepDFT, and `9,238.6 MB` for `ChargE3Net` $l_{\max}=2, \text{mul}=256$).
 
 ## Headline Benchmark Summary
 
 | Benchmark / Split | Canonical (`h=128`, 1.49M) | Matched (`h=144`, 1.87M) | GeoProbe (`h=128`, 1.87M) | Rel. Change vs `h=128` |
 |---|---|---|---|---|
 | **NMC Solid (3-seed, 5k steps, 50 test)** | $1.0195 \pm 0.0165\%$ | $0.9715 \pm 0.0640\%$ | **$0.7045 \pm 0.0198\%$** | **-30.9%** ($p = 3.84 \times 10^{-5}$) |
-| **NMC Full-500 Holdout (seed 42)** | $0.9951\%$ ($\text{SD } 0.2206\%$) | $0.9719\%$ ($\text{SD } 0.2122\%$) | **$0.6571\%$** ($\text{SD } 0.1527\%$) | **-34.0%** (**500/500 wins**, $p = 1.26 \times 10^{-83}$) |
+| **NMC vs `ChargE3Net` ($l_{\max}=2$, 5k, s42)** | $1.0302\%$ (`ChargE3Net`: $1.4283\%$) | $1.0049\%$ | **$0.6825\%$** | **-33.8%** (**-52.2%** vs `ChargE3Net`) |
+| **NMC Full-500 Holdout (5k, seed 42)** | $0.9951\%$ ($\text{SD } 0.2206\%$) | $0.9719\%$ ($\text{SD } 0.2122\%$) | **$0.6571\%$** ($\text{SD } 0.1527\%$) | **-34.0%** (**500/500 wins**, $p = 1.26 \times 10^{-83}$) |
 | **NMC Extended 15k Steps (100 test)** | $0.5139\%$ | — | **$0.3524\%$** | **-31.4%** |
-| **5-Fold Stoichiometry OOD CV** | $1.4961 \pm 0.6718\%$ | — | **$0.7502 \pm 0.1909\%$** | **-49.9%** (**5/5 folds**, peak **-76.6%**) |
-| **EC Liquid (5k steps, 50 test)** | $2.0972\%$ | $1.9760\%$ | **$1.1881\%$** | **-43.3%** |
-| **QM9 Gas (5k steps, 50 test)** | $5.5244\%$ | $7.5983\%$ | **$2.6895\%$** | **-51.3%** |
-| **NMC Autograd $\nabla\hat{\rho}$ $L_2$ MAE / Cos** | $0.1362$ / $0.9034$ | — | **$0.0843$ / $0.9556$** | **-38.1%** MAE |
+| **NMC Converged 100k Steps (100 test)** | $0.1296 \pm 0.0426\%$ | — | **$0.1084 \pm 0.0385\%$** | **-16.4%** (**100/100 wins**, $p = 3.90 \times 10^{-18}$) |
+| **5-Fold Stoichiometry OOD CV (NMC)** | $1.4961 \pm 0.6718\%$ | — | **$0.7502 \pm 0.1909\%$** | **-49.9%** (**5/5 folds**, peak **-76.6%**) |
+| **EC Liquid (5k steps, 50 test, `pbc=True`)** | $2.0972\%$ | $1.9760\%$ | **$1.1881\%$** | **-43.3%** (RMSE **-50.6%**) |
+| **QM9 Gas (15k steps, 50 test, `pbc=False`)** | $2.8159\%$ (`0.916 D`) | $2.6820\%$ (`0.637 D`) | **$2.5782\%$** (`0.693 D`) | **-8.4%** ($|\Delta N_e|$ **-34.0%**, dipole **-24.4%**) |
+| **NMC Bader Charge MAE (5k / 100k, 25 cells)** | $15.17$ / $1.68\text{ m}e$ (`E3`: $28.55\text{ m}e$) | — | **$10.50$ / $1.54\text{ m}e$** | **-30.8%** / **-8.0%** (**-63.2%** vs `ChargE3Net`) |
+| **EC Bader Charge MAE / Hartree $V_H$ (5k)** | $78.47\text{ m}e$ / $311.7\text{ mV}$ | — | **$52.87\text{ m}e$ / $194.8\text{ mV}$** | **-32.6%** / **-37.5%** ($E_H[\Delta\rho]$ **-65.8%**) |
+| **NMC Autograd $\nabla\hat{\rho}$ $L_2$ / Cos (5k)** | $0.1362$ / $0.9034$ | — | **$0.0843$ / $0.9556$** | **-38.1%** MAE (100k cos: **0.9983** vs 0.9974) |
+
+## Hardware Profiling on NVIDIA RTX 5080 (Fair Chunked Comparison + `ChargE3Net`)
+
+| Model | Edge Chunk | Train Step (`4×512`) | Train VRAM | Inf. Chunk (`8,192`) | Inf. Throughput | Inf. VRAM |
+|---|---|---|---|---|---|---|
+| Canonical `h=128` (official) | None | `36.19 ms` | `2,242.8 MB` | `34.33 ms` | `238.7k pts/s` | `2,806.4 MB` |
+| Canonical `h=128` (chunked) | `65,536` | `36.44 ms` | `2,243.1 MB` | `34.13 ms` | `240.0k pts/s` | `1,237.3 MB` |
+| Matched `h=144` (chunked) | `65,536` | `40.60 ms` | `2,514.9 MB` | `38.60 ms` | `212.2k pts/s` | `1,379.5 MB` |
+| **GeoProbe `h=128` (chunked)** | **`65,536`** | **`58.04 ms`** | **`3,794.5 MB`** | **`63.57 ms`** | **`128.9k pts/s`** | **`1,601.1 MB`** |
+| `ChargE3Net` ($l_{\max}=2, \text{mul}=256$) | Native | `238.49 ms` | `4,005.3 MB` | `164.31 ms` | `49.9k pts/s` | `9,238.6 MB` |
+| `ChargE3Net` ($l_{\max}=4, \text{mul}=500$)* | Native | `631.37 ms` (`2×200`) | `4,389.4 MB` | `142.36 ms` (`1,024`) | `7.2k pts/s` | `5,450.7 MB` |
+
+*\*Official `ChargE3Net` ($l_{\max}=4, \text{mul}=500$, 1.91M params) exceeds 16 GB VRAM at `batch=4×512` and is profiled at its native `batch=2×200` and `1,024`-probe inference chunk.*
 
 ## Installation
 
@@ -38,18 +55,10 @@ pip install -e .
 
 ## Quick Verification & Reproducibility
 
-### 1. Symmetry ($S_N$, Translation + PBC Wrap, $O(3)$ Proper & Improper) and $C^2$ Autograd Tests
+### 1. Symmetry ($S_N$, Translation + PBC Wrap, $O(3)$ Proper & Improper) and Autograd Smoothness Tests
 
 ```bash
 pytest -v
-```
-
-Observed output (`pytest -v`):
-```text
-tests/test_invariance_and_autograd.py::test_parameter_counts PASSED      [ 33%]
-tests/test_invariance_and_autograd.py::test_exact_symmetries_loaded_checkpoint PASSED [ 66%]
-tests/test_invariance_and_autograd.py::test_c2_smoothness_and_autograd PASSED [100%]
-======================== 3 passed, 2 warnings in 2.73s =========================
 ```
 
 ### 2. Evaluate Pretrained Checkpoints on Held-Out NMC Sample Grids
@@ -58,10 +67,6 @@ tests/test_invariance_and_autograd.py::test_c2_smoothness_and_autograd PASSED [1
 python evaluate.py --model geoprobe
 python evaluate.py --model canonical
 ```
-
-Observed output (`sample_data/nmc_sample_2structs.pt`, RTX 5080):
-- `geoprobe` (`1,871,617` params): `mean_eps_mae_pct = 0.7469%` (`1.CHGCAR.lz4`: `0.4798%`, `3.CHGCAR.lz4`: `1.0140%`)
-- `canonical` (`1,487,233` params): `mean_eps_mae_pct = 1.1531%` (`1.CHGCAR.lz4`: `0.7800%`, `3.CHGCAR.lz4`: `1.5262%`)
 
 ### 3. Parameter & Ablation Ledger
 
@@ -75,11 +80,6 @@ python run_ablation.py --list_params
 python scripts/profile_throughput.py
 ```
 
-Observed output (4,096 probes, 121,667 edges, RTX 5080):
-- `canonical_h128`: `17.372 ms/chunk`, `235,783 probes/s`, `1,258.76 MB` peak VRAM
-- `param_matched_h144`: `19.208 ms/chunk`, `213,250 probes/s`, `1,407.77 MB` peak VRAM
-- `geoprobe_h128`: `27.644 ms/chunk`, `148,169 probes/s`, `1,160.09 MB` peak VRAM
-
 ## Datasets & Attribution
 
-Full VASP `CHGCAR` electron density archives for NMC ($\text{Li}_x(\text{Ni,Mn,Co})\text{O}_2$), liquid ethylene carbonate (EC), and QM9 follow the open DTU Data releases of Jørgensen & Bhowmik (*npj Comput. Mater.* **2022**, *8*, 183; DOI: `10.1038/s41524-022-00863-y`). Pre-computed `results/*.json` ledgers and trained seed-42 NMC checkpoints (`checkpoints/`) are included for immediate auditability under the MIT License.
+Full VASP/PBE `CHGCAR` electron density archives for NMC ($\text{Li}_x(\text{Ni,Mn,Co})\text{O}_2$), liquid ethylene carbonate (EC), and QM9 (`pbc=False`) follow the open DTU Data releases of Jørgensen & Bhowmik (*npj Comput. Mater.* **2022**, *8*, 183; DOI: `10.1038/s41524-022-00863-y`). Complete raw experiment ledgers (`results/*.json`, including 100k convergence, `ChargE3Net`, Bader/Hartree/dipole observables, and fair chunked profiling) and trained seed-42 NMC checkpoints (`checkpoints/`) are archived here under the MIT License.

@@ -1,0 +1,75 @@
+{
+  "charge3net_l2_m256_5k_nmc50": {
+    "lmax": 2,
+    "mul": 256,
+    "lr": 0.01,
+    "n_params": 757196,
+    "best_val_mae": 0.009122465604782104,
+    "best_val_rmse": 0.014542088685110366,
+    "best_step": 5000,
+    "train_s": 1295.96,
+    "eval_s": 509.35,
+    "curve": [
+      {
+        "step": 1000,
+        "val_mae": 0.0207544552192688,
+        "val_rmse": 0.03224712081188519,
+        "elapsed_s": 260.5
+      },
+      {
+        "step": 2000,
+        "val_mae": 0.018844086982727052,
+        "val_rmse": 0.029480039596213998,
+        "elapsed_s": 518.4
+      },
+      {
+        "step": 3000,
+        "val_mae": 0.011303641912460327,
+        "val_rmse": 0.017952416804416643,
+        "elapsed_s": 772.7
+      },
+      {
+        "step": 4000,
+        "val_mae": 0.00948760820198059,
+        "val_rmse": 0.015166253562971788,
+        "elapsed_s": 1036.6
+      },
+      {
+        "step": 5000,
+        "val_mae": 0.009122465604782104,
+        "val_rmse": 0.014542088685110366,
+        "elapsed_s": 1295.9
+      }
+    ],
+    "test": {
+      "mean_eps_mae": 1.4283250840469688,
+      "std_eps_mae": 0.40098600657801514,
+      "median_eps_mae": 1.3369947458737428,
+      "mae": 0.009815097359218159,
+      "rmse": 0.01593493354504202
+    }
+  },
+  "charge3net_l2_m256_profile": {
+    "n_params": 757196,
+    "train_fwd_bwd_ms": 238.49,
+    "train_peak_vram_mb": 4005.27,
+    "inf_chunk2048_ms": 45.32,
+    "inf_chunk2048_probes_per_s": 45192.1,
+    "inf_chunk2048_vram_mb": 2375.11,
+    "inf_8192": {
+      "inf_chunk8192_ms": 164.31,
+      "inf_probes_per_s": 49857.2,
+      "inf_peak_vram_mb": 9238.63
+    }
+  },
+  "charge3net_l4_m500_profile_b2x200": {
+    "n_params": 1909389,
+    "train_batch": "2x200",
+    "train_fwd_bwd_ms": 631.37,
+    "train_peak_vram_mb": 4389.4,
+    "inf_chunk1024_ms": 142.36,
+    "inf_probes_per_s": 7193.1,
+    "inf_peak_vram_mb": 5450.7,
+    "note_4x512": "Exceeds 16 GB RTX 5080 VRAM ceiling at batch=4x512"
+  }
+}
