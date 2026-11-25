@@ -23,7 +23,7 @@ GeoProbe-DeepDFT resolves the first-hop directional blindness and single-basis r
 | **NMC vs `ChargE3Net` ($l_{\max}=2$, 5k, s42)** | $1.0302\%$ (`ChargE3Net`: $1.4283\%$) | $1.0049\%$ | **$0.6825\%$** | **-33.8%** (**-52.2%** vs `ChargE3Net`) |
 | **NMC Full-500 Holdout (5k, seed 42)** | $0.9951\%$ ($\text{SD } 0.2206\%$) | $0.9719\%$ ($\text{SD } 0.2122\%$) | **$0.6571\%$** ($\text{SD } 0.1527\%$) | **-34.0%** (**500/500 wins**, $p = 1.26 \times 10^{-83}$) |
 | **NMC Extended 15k Steps (100 test)** | $0.5139\%$ | — | **$0.3524\%$** | **-31.4%** |
-| **NMC Converged 100k Steps (100 test)** | $0.1296 \pm 0.0426\%$ | — | **$0.1084 \pm 0.0385\%$** | **-16.4%** (**100/100 wins**, $p = 3.90 \times 10^{-18}$) |
+| **NMC Converged 100k Steps (100 test)** | $0.1296 \pm 0.0426\%$ | $0.1187 \pm 0.0413\%$ | **$0.1084 \pm 0.0385\%$** | **-16.4%** / **-8.7%** vs `h=144` (**100/100 wins vs both**) |
 | **5-Fold Stoichiometry OOD CV (NMC)** | $1.4961 \pm 0.6718\%$ | — | **$0.7502 \pm 0.1909\%$** | **-49.9%** (**5/5 folds**, peak **-76.6%**) |
 | **EC Liquid (5k steps, 50 test, `pbc=True`)** | $2.0972\%$ | $1.9760\%$ | **$1.1881\%$** | **-43.3%** (RMSE **-50.6%**) |
 | **QM9 Gas (15k steps, 50 test, `pbc=False`)** | $2.8159\%$ (`0.916 D`) | $2.6820\%$ (`0.637 D`) | **$2.5782\%$** (`0.693 D`) | **-8.4%** ($|\Delta N_e|$ **-34.0%**, dipole **-24.4%**) |
